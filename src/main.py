@@ -16,6 +16,7 @@ from scipy import stats as st
 from sklearn.model_selection import train_test_split
 
 from utils.clean_key import clean_key
+from utils.clean_value import clean_value
 from persistence.repository import GenericRepository
 
 repository = GenericRepository('minsait_challenge', 'credito_rural')
@@ -31,7 +32,7 @@ print("se livrando de", num_rows_with_missing, "linhas com valores faltantes (mi
 list_of_dicts = df.to_dict(orient='records')
 
 
-new_list_of_dicts = [{clean_key(key): value for key, value in item.items()} for item in list_of_dicts]
+new_list_of_dicts = [{clean_key(key): clean_value(value) for key, value in item.items()} for item in list_of_dicts]
 
 repository.insert_many_documents(new_list_of_dicts)
 
