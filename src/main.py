@@ -7,18 +7,18 @@ Original file is located at
     https://colab.research.google.com/drive/1WtE18zbJR3IszQLBgM1TStK25qwlLc4G
 """
 import os
-import glob
-import numpy as np
-import pandas as pd
-import seaborn as sns
-import matplotlib.pyplot as plt
-import pingouin as pg
-import random as rd
-from scipy import stats as st
-from sklearn.model_selection import train_test_split
+# import glob
+# import numpy as np
+# import pandas as pd
+# import seaborn as sns
+# import matplotlib.pyplot as plt
+# import pingouin as pg
+# import random as rd
+# from scipy import stats as st
+# from sklearn.model_selection import train_test_split
 
-from utils.clean_key import clean_key
-from utils.clean_value import clean_value
+# from utils.clean_key import clean_key
+# from utils.clean_value import clean_value
 from persistence.repository import GenericRepository
 from action.from_file_to_mongo import from_file_to_mongo
 
@@ -37,9 +37,11 @@ for file_path in file_list:
 
 #####################################
 
- #df_filtrado.describe()
+# df_filtrado.shape
 
-#df_filtrado.head(3)
+# df_filtrado.describe()
+
+# df_filtrado.head(3)
 
 # df_filtrado['Linha/Programa'].value_counts().to_frame()
 
