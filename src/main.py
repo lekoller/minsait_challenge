@@ -37,13 +37,13 @@ for file_path in file_list:
 
 #####################################
 
-# df_filtrado.shape
+df_filtrado.shape
 
-# df_filtrado.describe()
+df_filtrado.describe()
 
-# df_filtrado.head(3)
+df_filtrado.head(3)
 
-# df_filtrado['Linha/Programa'].value_counts().to_frame()
+df_filtrado['Linha/Programa'].value_counts().to_frame()
 
 
 
