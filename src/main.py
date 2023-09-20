@@ -7,6 +7,48 @@ Original file is located at
     https://colab.research.google.com/drive/1WtE18zbJR3IszQLBgM1TStK25qwlLc4G
 """
 import os
+
+from persistence.repository import GenericRepository
+from action.from_file_to_mongo import from_file_to_mongo
+
+
+def popula_credito_rural():
+    # instancia um repositório mongodb
+    repository = GenericRepository('minsait_challenge', 'credito_rural')
+
+    folder_path = "./xlsx/credito_rural"
+
+    file_list = os.listdir(folder_path)
+
+    file_list.remove('__init__.py')
+
+    for file_path in file_list:
+        from_file_to_mongo(folder_path, file_path, repository)
+
+
+# Matheus, trabalhe nesta funcão com o nome que você quiser atribuir a esta nova fonte de dados
+def popula_nova_collection():
+    collection_name = 'nova_collection' # atribua o nome da nova collection aqui e cria uma pasta ao lado da nova pasta 'credito_rural' com o mesmo nome, dentro da pasta xlsx
+
+    repository = GenericRepository('minsait_challenge', collection_name)
+
+    folder_path = "./xlsx/" + collection_name
+
+    file_list = os.listdir(folder_path)
+
+    file_list.remove('__init__.py')
+
+    for file_path in file_list:
+        from_file_to_mongo(folder_path, file_path, repository, no_missings=False) # se quiser manter os missings, deixe o parametro no_missings=False
+
+
+popula_credito_rural()
+# popula_nova_collection()
+# quando terminar de implementar a função e mover as planilhas para a pasta, descomente a linha acima
+
+
+#####################################
+
 # import glob
 # import numpy as np
 # import pandas as pd
@@ -19,23 +61,6 @@ import os
 
 # from utils.clean_key import clean_key
 # from utils.clean_value import clean_value
-from persistence.repository import GenericRepository
-from action.from_file_to_mongo import from_file_to_mongo
-
-
-# instancia um repositório mongodb
-repository = GenericRepository('minsait_challenge', 'credito_rural')
-
-folder_path = "./xlsx"
-
-file_list = os.listdir(folder_path)
-
-file_list.remove('__init__.py')
-
-for file_path in file_list:
-    from_file_to_mongo(folder_path, file_path, repository)
-
-#####################################
 
 # df_filtrado.shape
 
