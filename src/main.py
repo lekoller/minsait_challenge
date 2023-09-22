@@ -9,7 +9,7 @@ Original file is located at
 import os
 
 from persistence.repository import GenericRepository
-from action.from_file_to_mongo import from_file_to_mongo
+from action.from_file_to_mongo import from_xlsx_to_mongo, from_csv_to_mongo
 
 
 def popula_credito_rural():
@@ -23,7 +23,7 @@ def popula_credito_rural():
     file_list.remove('__init__.py')
 
     for file_path in file_list:
-        from_file_to_mongo(folder_path, file_path, repository)
+        from_xlsx_to_mongo(folder_path, file_path, repository)
 
 
 # Matheus, trabalhe nesta funcão com o nome que você quiser atribuir a esta nova fonte de dados
@@ -39,13 +39,26 @@ def popula_nova_collection():
     file_list.remove('__init__.py')
 
     for file_path in file_list:
-        from_file_to_mongo(folder_path, file_path, repository, no_missings=False) # se quiser manter os missings, deixe o parametro no_missings=False
+        from_xlsx_to_mongo(folder_path, file_path, repository, no_missings=False) # se quiser manter os missings, deixe o parametro no_missings=False
+
+def popula_sicor_operacao_basica_estado():
+    collection_name = 'sicor_operacao_basica_estado'
+
+    repository = GenericRepository('minsait_challenge', collection_name)
+
+    folder_path = "./csv/" + collection_name
+
+    file_list = os.listdir(folder_path)
+
+    file_list.remove('__init__.py')
+
+    for file_path in file_list:
+        from_csv_to_mongo(folder_path, file_path, repository, no_missings=False, separator=';')
 
 
-popula_credito_rural()
-popula_nova_collection()
-# quando terminar de implementar a função e mover as planilhas para a pasta, descomente a linha acima
-
+# popula_credito_rural()
+# popula_nova_collection()
+popula_sicor_operacao_basica_estado()
 
 #####################################
 

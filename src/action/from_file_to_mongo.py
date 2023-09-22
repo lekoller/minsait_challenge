@@ -4,7 +4,7 @@ from utils.clean_key import clean_key
 from utils.clean_value import clean_value
 from persistence.repository import GenericRepository
 
-def from_file_to_mongo(folder_path: str, file_path: str, repository: GenericRepository, no_missings: bool = True):
+def from_xlsx_to_mongo(folder_path: str, file_path: str, repository: GenericRepository, no_missings: bool = True):
     df = pd.read_excel(folder_path + '/' + file_path)
 
     if no_missings:
@@ -15,6 +15,31 @@ def from_file_to_mongo(folder_path: str, file_path: str, repository: GenericRepo
     new_list_of_dicts = [{clean_key(key): clean_value(value) for key, value in item.items()} for item in list_of_dicts]
 
     repository.insert_many_documents(new_list_of_dicts)
+
+def from_csv_to_mongo(
+        folder_path: str, 
+        file_path: str, 
+        repository: GenericRepository, 
+        no_missings: bool = True,
+        separator: str = ';'
+    ):
+    df_iterator = pd.read_csv(folder_path + '/' + file_path, sep=separator, encoding='utf8', chunksize=10000)
+
+    for df in df_iterator:
+        if no_missings:
+            df = get_rid_of_missings(df)
+
+        print("after reading csv, df.shape is", df.shape)
+
+        list_of_dicts = df.to_dict(orient='records')
+
+        print("after converting to dict, len(list_of_dicts) is", len(list_of_dicts))
+
+        new_list_of_dicts = [{clean_key(key): clean_value(value) for key, value in item.items()} for item in list_of_dicts]
+
+        print("after cleaning keys and values, len(new_list_of_dicts) is", len(new_list_of_dicts))
+
+        repository.insert_many_documents(new_list_of_dicts)
 
 def get_rid_of_missings(df: pd.DataFrame) -> pd.DataFrame:
     num_rows_with_missing = (df.isna().sum(axis=1) > 0).sum()
