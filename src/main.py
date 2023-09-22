@@ -28,7 +28,7 @@ def popula_credito_rural():
 
 # Matheus, trabalhe nesta funcão com o nome que você quiser atribuir a esta nova fonte de dados
 def popula_nova_collection():
-    collection_name = 'nova_collection' # atribua o nome da nova collection aqui e cria uma pasta ao lado da nova pasta 'credito_rural' com o mesmo nome, dentro da pasta xlsx
+    collection_name = 'seguro_rural_gov' # atribua o nome da nova collection aqui e cria uma pasta ao lado da nova pasta 'credito_rural' com o mesmo nome, dentro da pasta xlsx
 
     repository = GenericRepository('minsait_challenge', collection_name)
 
@@ -43,7 +43,7 @@ def popula_nova_collection():
 
 
 popula_credito_rural()
-# popula_nova_collection()
+popula_nova_collection()
 # quando terminar de implementar a função e mover as planilhas para a pasta, descomente a linha acima
 
 
