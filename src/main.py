@@ -7,6 +7,7 @@ Original file is located at
     https://colab.research.google.com/drive/1WtE18zbJR3IszQLBgM1TStK25qwlLc4G
 """
 import os
+import argparse
 
 from persistence.repository import GenericRepository
 from action.from_file_to_mongo import from_xlsx_to_mongo, from_csv_to_mongo
@@ -91,10 +92,21 @@ def popula_conab():
             from_xlsx_to_mongo(folder_path, file_name, repository, no_missings=False, sheet_name=sheet, field_to_add={'ano': year})
 
 
-# popula_credito_rural()
-# popula_nova_collection()
-# popula_sicor_operacao_basica_estado()
-popula_conab()
+parser = argparse.ArgumentParser()
+
+parser.add_argument('-s', '--save',  action='store_true', help='save data to mongodb')
+parser.add_argument('-l', '--load',  action='store_true', help='load data from mongodb and perform analysis')
+
+args = parser.parse_args()
+
+if args.save:
+    popula_credito_rural()
+    popula_nova_collection()
+    popula_sicor_operacao_basica_estado()
+    popula_conab()
+
+if args.load:
+    print("load data from mongodb and perform analysis")
 
 #####################################
 
