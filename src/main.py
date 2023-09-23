@@ -10,11 +10,14 @@ import os
 
 from persistence.repository import GenericRepository
 from action.from_file_to_mongo import from_xlsx_to_mongo, from_csv_to_mongo
+from utils.clean_key import clean_key
+
+db_name = 'minsait_challenge'
 
 
 def popula_credito_rural():
     # instancia um repositório mongodb
-    repository = GenericRepository('minsait_challenge', 'credito_rural')
+    repository = GenericRepository(db_name, 'credito_rural')
 
     folder_path = "./xlsx/credito_rural"
 
@@ -30,7 +33,7 @@ def popula_credito_rural():
 def popula_nova_collection():
     collection_name = 'seguro_rural_gov' # atribua o nome da nova collection aqui e cria uma pasta ao lado da nova pasta 'credito_rural' com o mesmo nome, dentro da pasta xlsx
 
-    repository = GenericRepository('minsait_challenge', collection_name)
+    repository = GenericRepository(db_name, collection_name)
 
     folder_path = "./xlsx/" + collection_name
 
@@ -44,7 +47,7 @@ def popula_nova_collection():
 def popula_sicor_operacao_basica_estado():
     collection_name = 'sicor_operacao_basica_estado'
 
-    repository = GenericRepository('minsait_challenge', collection_name)
+    repository = GenericRepository(db_name, collection_name)
 
     folder_path = "./csv/" + collection_name
 
@@ -56,9 +59,42 @@ def popula_sicor_operacao_basica_estado():
         from_csv_to_mongo(folder_path, file_path, repository, no_missings=False, separator=';')
 
 
+def popula_conab(): 
+    dir_name = 'conab_safras'
+    sheets = [
+        'Área_Brasil', 
+        'Área_Brasil_Inverno', 
+        'Produtividade_Brasil',
+        'Produtividade_Brasil_Inverno',
+        'Produção_Brasil',
+        'Producão_Brasil_Inverno',
+        'Total_UF',
+        'Total_Produto',
+        'Total_Produto_Inverno',
+    ]
+    collection_sufix_names = [clean_key(sheet) for sheet in sheets]
+
+    repositories = {
+        collection_sufix_name: GenericRepository(db_name, dir_name + "_" + collection_sufix_name) 
+        for collection_sufix_name in collection_sufix_names
+    }
+
+    for sheet, collection_sufix_name in zip(sheets, collection_sufix_names):
+        folder_path = "./xlsx/" + dir_name
+        file_list = os.listdir(folder_path)
+        file_list.remove('__init__.py')
+        repository = repositories[collection_sufix_name]
+
+        for file_name in file_list:
+            year = file_name.strip('.xlsx')
+
+            from_xlsx_to_mongo(folder_path, file_name, repository, no_missings=False, sheet_name=sheet, field_to_add={'ano': year})
+
+
 # popula_credito_rural()
 # popula_nova_collection()
-popula_sicor_operacao_basica_estado()
+# popula_sicor_operacao_basica_estado()
+popula_conab()
 
 #####################################
 
