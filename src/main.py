@@ -7,14 +7,28 @@ Original file is located at
     https://colab.research.google.com/drive/1WtE18zbJR3IszQLBgM1TStK25qwlLc4G
 """
 import os
+import argparse
+import pandas as pd
 
 from persistence.repository import GenericRepository
-from action.from_file_to_mongo import from_file_to_mongo
+from action.from_file_to_mongo import from_xlsx_to_mongo, from_csv_to_mongo
+from action.from_mongo_to_pd import read_credito_rural
+from utils.clean_key import clean_key
+
+
+db_name = 'minsait_challenge'
+
+parser = argparse.ArgumentParser()
+
+parser.add_argument('-s', '--save',  action='store_true', help='save data to mongodb')
+parser.add_argument('-l', '--load',  action='store_true', help='load data from mongodb and perform analysis')
+
+args = parser.parse_args()
 
 
 def popula_credito_rural():
     # instancia um repositório mongodb
-    repository = GenericRepository('minsait_challenge', 'credito_rural')
+    repository = GenericRepository(db_name, 'credito_rural')
 
     folder_path = "./xlsx/credito_rural"
 
@@ -23,14 +37,14 @@ def popula_credito_rural():
     file_list.remove('__init__.py')
 
     for file_path in file_list:
-        from_file_to_mongo(folder_path, file_path, repository)
+        from_xlsx_to_mongo(folder_path, file_path, repository)
 
 
 # Matheus, trabalhe nesta funcão com o nome que você quiser atribuir a esta nova fonte de dados
 def popula_nova_collection():
     collection_name = 'seguro_rural_gov' # atribua o nome da nova collection aqui e cria uma pasta ao lado da nova pasta 'credito_rural' com o mesmo nome, dentro da pasta xlsx
 
-    repository = GenericRepository('minsait_challenge', collection_name)
+    repository = GenericRepository(db_name, collection_name)
 
     folder_path = "./xlsx/" + collection_name
 
@@ -39,13 +53,91 @@ def popula_nova_collection():
     file_list.remove('__init__.py')
 
     for file_path in file_list:
-        from_file_to_mongo(folder_path, file_path, repository, no_missings=False) # se quiser manter os missings, deixe o parametro no_missings=False
+        from_xlsx_to_mongo(folder_path, file_path, repository, no_missings=False) # se quiser manter os missings, deixe o parametro no_missings=False
+
+def popula_sicor_operacao_basica_estado():
+    collection_name = 'sicor_operacao_basica_estado'
+
+    repository = GenericRepository(db_name, collection_name)
+
+    folder_path = "./csv/" + collection_name
+
+    file_list = os.listdir(folder_path)
+
+    file_list.remove('__init__.py')
+
+    for file_path in file_list:
+        from_csv_to_mongo(folder_path, file_path, repository, no_missings=False, separator=';')
+
+def popula_conab(): 
+    dir_name = 'conab_safras'
+    sheets = [
+        'Área_Brasil', 
+        'Área_Brasil_Inverno', 
+        'Produtividade_Brasil',
+        'Produtividade_Brasil_Inverno',
+        'Produção_Brasil',
+        'Produção_Brasil_Inverno',
+        'Total_UF',
+        'Total_Produto',
+        'Total_Produto_Inverno',
+    ]
+    collection_sufix_names = [clean_key(sheet) for sheet in sheets]
+
+    repositories = {
+        collection_sufix_name: GenericRepository(db_name, dir_name + "_" + collection_sufix_name) 
+        for collection_sufix_name in collection_sufix_names
+    }
+
+    for sheet, collection_sufix_name in zip(sheets, collection_sufix_names):
+        folder_path = "./xlsx/" + dir_name
+        file_list = os.listdir(folder_path)
+
+        file_list.remove('__init__.py')
+        file_list.remove('2020.xls')
+        
+        repository = repositories[collection_sufix_name]
+
+        for file_name in file_list:
+            year = file_name.strip('.xlsx')
+
+            from_xlsx_to_mongo(folder_path, file_name, repository, no_missings=False, sheet_name=sheet, field_to_add={'ano': year})
 
 
-popula_credito_rural()
-popula_nova_collection()
-# quando terminar de implementar a função e mover as planilhas para a pasta, descomente a linha acima
+def analisar_credito_por_estado():
+    print("analisando crédito por estado")
+    
+    df = read_credito_rural()
 
+    df['valor_comprometido_r$'].fillna(0, inplace=True)
+    df['valor_aprovado_r$'].fillna(0, inplace=True)
+
+    df['valor'] = df['valor_comprometido_r$'] + df['valor_aprovado_r$']
+
+    agg = df.groupby('estado').agg({'valor': 'sum', 'n_de_operacoes': 'sum'}).reset_index()
+
+    agg['valor_agricultura_familiar'] = df[df['tipo_de_agricultura'] == 'Agricultura Familiar'].groupby('estado')['valor'].sum().reset_index()['valor']
+    agg['valor_agricultura_familiar'].fillna(0, inplace=True)
+    
+    print(agg.head())
+
+    if args.save:
+        repository = GenericRepository(db_name, 'credito_por_estado')
+
+        repository.insert_many_documents(agg.to_dict('records'))
+
+
+
+if args.save:
+    popula_credito_rural()
+    # popula_nova_collection()
+    # popula_sicor_operacao_basica_estado()
+    popula_conab()
+    pass
+
+if args.load:
+    analisar_credito_por_estado()
+    
 
 #####################################
 
