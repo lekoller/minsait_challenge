@@ -8,12 +8,22 @@ Original file is located at
 """
 import os
 import argparse
+import pandas as pd
 
 from persistence.repository import GenericRepository
 from action.from_file_to_mongo import from_xlsx_to_mongo, from_csv_to_mongo
+from action.from_mongo_to_pd import read_credito_rural
 from utils.clean_key import clean_key
 
+
 db_name = 'minsait_challenge'
+
+parser = argparse.ArgumentParser()
+
+parser.add_argument('-s', '--save',  action='store_true', help='save data to mongodb')
+parser.add_argument('-l', '--load',  action='store_true', help='load data from mongodb and perform analysis')
+
+args = parser.parse_args()
 
 
 def popula_credito_rural():
@@ -59,7 +69,6 @@ def popula_sicor_operacao_basica_estado():
     for file_path in file_list:
         from_csv_to_mongo(folder_path, file_path, repository, no_missings=False, separator=';')
 
-
 def popula_conab(): 
     dir_name = 'conab_safras'
     sheets = [
@@ -92,12 +101,26 @@ def popula_conab():
             from_xlsx_to_mongo(folder_path, file_name, repository, no_missings=False, sheet_name=sheet, field_to_add={'ano': year})
 
 
-parser = argparse.ArgumentParser()
+def analisar_credito_por_estado():
+    print("analisando crédito por estado")
+    
+    df = read_credito_rural()
 
-parser.add_argument('-s', '--save',  action='store_true', help='save data to mongodb')
-parser.add_argument('-l', '--load',  action='store_true', help='load data from mongodb and perform analysis')
+    df['valor_comprometido_r$'].fillna(0, inplace=True)
+    df['valor_aprovado_r$'].fillna(0, inplace=True)
 
-args = parser.parse_args()
+    df['valor'] = df['valor_comprometido_r$'] + df['valor_aprovado_r$']
+
+    agg = df.groupby('estado').agg({'valor': 'sum', 'n_de_operacoes': 'sum'}).reset_index()
+
+    print(agg.head())
+
+    if args.save:
+        repository = GenericRepository(db_name, 'credito_por_estado')
+
+        repository.insert_many_documents(agg.to_dict('records'))
+
+
 
 if args.save:
     popula_credito_rural()
@@ -106,7 +129,8 @@ if args.save:
     popula_conab()
 
 if args.load:
-    print("load data from mongodb and perform analysis")
+    analisar_credito_por_estado()
+    
 
 #####################################
 

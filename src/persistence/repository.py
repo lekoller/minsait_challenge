@@ -9,6 +9,12 @@ class GenericRepository:
 
     def get_last_document(self):
         return self.collection.find_one(sort=[('_id', DESCENDING)])
+    
+    def list_all_documents(self, filter: dict = {}):
+        return list(self.collection.find(filter))
+    
+    def count_documents(self, filter: dict = {}):
+        return self.collection.count_documents(filter)
 
     def insert_document(self, document):
         self.collection.insert_one(document)
