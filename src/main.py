@@ -77,7 +77,7 @@ def popula_conab():
         'Produtividade_Brasil',
         'Produtividade_Brasil_Inverno',
         'Produção_Brasil',
-        'Producão_Brasil_Inverno',
+        'Produção_Brasil_Inverno',
         'Total_UF',
         'Total_Produto',
         'Total_Produto_Inverno',
@@ -92,7 +92,10 @@ def popula_conab():
     for sheet, collection_sufix_name in zip(sheets, collection_sufix_names):
         folder_path = "./xlsx/" + dir_name
         file_list = os.listdir(folder_path)
+
         file_list.remove('__init__.py')
+        file_list.remove('2020.xls')
+        
         repository = repositories[collection_sufix_name]
 
         for file_name in file_list:
@@ -113,6 +116,9 @@ def analisar_credito_por_estado():
 
     agg = df.groupby('estado').agg({'valor': 'sum', 'n_de_operacoes': 'sum'}).reset_index()
 
+    agg['valor_agricultura_familiar'] = df[df['tipo_de_agricultura'] == 'Agricultura Familiar'].groupby('estado')['valor'].sum().reset_index()['valor']
+    agg['valor_agricultura_familiar'].fillna(0, inplace=True)
+    
     print(agg.head())
 
     if args.save:
@@ -124,9 +130,10 @@ def analisar_credito_por_estado():
 
 if args.save:
     popula_credito_rural()
-    popula_nova_collection()
-    popula_sicor_operacao_basica_estado()
+    # popula_nova_collection()
+    # popula_sicor_operacao_basica_estado()
     popula_conab()
+    pass
 
 if args.load:
     analisar_credito_por_estado()
