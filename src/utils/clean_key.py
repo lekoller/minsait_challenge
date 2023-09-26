@@ -1,5 +1,5 @@
 
-def clean_key(key):
+def clean_key(key: str):
     key = key.lower() \
         .replace(' ', '_') \
         .replace('/', '_') \

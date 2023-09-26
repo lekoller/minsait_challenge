@@ -10,7 +10,8 @@ def from_xlsx_to_mongo(
         repository: GenericRepository, 
         no_missings: bool = True, 
         sheet_name: str = '',
-        field_to_add: dict = None
+        field_to_add: dict = None,
+        field_to_change: dict = None
     ):
     if sheet_name:
         df = pd.read_excel(folder_path + '/' + file_path, sheet_name=sheet_name)
@@ -26,14 +27,30 @@ def from_xlsx_to_mongo(
     if 'Unnamed: 8' in df.columns:
         df = df.drop(columns=['Unnamed: 8'])
 
+
+        
+
     list_of_dicts = df.to_dict(orient='records')
 
     new_list_of_dicts = [{clean_key(key): clean_value(value) for key, value in item.items()} for item in list_of_dicts]
 
-    print("sheet_name", sheet_name)
-    print(len(new_list_of_dicts))
+    # print("sheet_name", sheet_name)
+    # print(len(new_list_of_dicts))
 
     repository.insert_many_documents(new_list_of_dicts)
+    
+    if field_to_change:
+        print("field_to_change", field_to_change)
+        wrong = field_to_change['wrong']
+        right = field_to_change['right']
+
+        update_operation = {
+            "$rename": {
+                wrong: right
+            }
+        }
+
+        repository.update_many({}, update_operation)
 
 def from_csv_to_mongo(
         folder_path: str, 

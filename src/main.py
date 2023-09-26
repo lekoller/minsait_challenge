@@ -12,9 +12,9 @@ import pandas as pd
 
 from persistence.repository import GenericRepository
 from action.from_file_to_mongo import from_xlsx_to_mongo, from_csv_to_mongo
-from action.from_mongo_to_pd import read_credito_rural
+from action.from_mongo_to_pd import read_conab_safras_por_estado, read_credito_rural
 from utils.clean_key import clean_key
-
+from utils.constants import estados_brasileiros
 
 db_name = 'minsait_challenge'
 
@@ -37,7 +37,11 @@ def popula_credito_rural():
     file_list.remove('__init__.py')
 
     for file_path in file_list:
-        from_xlsx_to_mongo(folder_path, file_path, repository)
+        from_xlsx_to_mongo(folder_path, file_path, repository, field_to_change={
+            'wrong': 'mes_ano_aprovacao', 
+            'right': 'mes_ano_protocolo'
+        })
+        
 
 
 # Matheus, trabalhe nesta funcão com o nome que você quiser atribuir a esta nova fonte de dados
@@ -94,7 +98,6 @@ def popula_conab():
         file_list = os.listdir(folder_path)
 
         file_list.remove('__init__.py')
-        file_list.remove('2020.xls')
         
         repository = repositories[collection_sufix_name]
 
@@ -109,117 +112,64 @@ def analisar_credito_por_estado():
     
     df = read_credito_rural()
 
+    df['estado'] = df['estado'].apply(clean_key)
+
     df['valor_comprometido_r$'].fillna(0, inplace=True)
     df['valor_aprovado_r$'].fillna(0, inplace=True)
 
     df['valor'] = df['valor_comprometido_r$'] + df['valor_aprovado_r$']
+    
+    filtered_df = df[df['tipo_de_agricultura'] == 'Agricultura Familiar']
+    filtered_agg = filtered_df.groupby('estado').agg({'valor': 'sum'}).reset_index()
+    list_filtered_agg = filtered_agg.to_dict('records')
 
     agg = df.groupby('estado').agg({'valor': 'sum', 'n_de_operacoes': 'sum'}).reset_index()
 
-    agg['valor_agricultura_familiar'] = df[df['tipo_de_agricultura'] == 'Agricultura Familiar'].groupby('estado')['valor'].sum().reset_index()['valor']
-    agg['valor_agricultura_familiar'].fillna(0, inplace=True)
-    
-    print(agg.head())
+    list_agg = agg.to_dict('records')
+
+    for item in list_agg:
+
+        for filtered_item in list_filtered_agg:
+            if item['estado'] == filtered_item['estado']:
+                item['valor_agricultura_familiar'] = filtered_item['valor']
+                item['porcentagem_agricultura_familiar'] = (item['valor_agricultura_familiar'] / item['valor']) * 100
+                break
+            item['valor_agricultura_familiar'] = 0
+            item['porcentagem_agricultura_familiar'] = 0
 
     if args.save:
         repository = GenericRepository(db_name, 'credito_por_estado')
 
-        repository.insert_many_documents(agg.to_dict('records'))
+        repository.insert_many_documents([item for item in list_agg if item['estado'] != 'interestadual'])
 
+def analisar_safra_por_estado():
+    df = read_conab_safras_por_estado()
+
+    df['variacao_produtividade'] = df['produtividade_em_kg_ha_var_%_d_c']
+
+    agg = df.groupby('regiao_uf').agg({'variacao_produtividade': 'sum', }).reset_index()
+
+    agg_list = agg.to_dict('records')
+
+    for item in agg_list:
+        item['estado'] = estados_brasileiros[item['regiao_uf']] if item['regiao_uf'] in estados_brasileiros else ""
+
+    final_list = [item for item in agg_list if item['estado'] != ""]    
+
+    if args.save:
+        repository = GenericRepository(db_name, 'variacao_da_produtividade_por_estado')
+    
+        repository.insert_many_documents(final_list)
 
 
 if args.save:
-    popula_credito_rural()
+    # popula_credito_rural()
     # popula_nova_collection()
     # popula_sicor_operacao_basica_estado()
-    popula_conab()
+    # popula_conab()
     pass
 
 if args.load:
     analisar_credito_por_estado()
-    
-
-#####################################
-
-# import glob
-# import numpy as np
-# import pandas as pd
-# import seaborn as sns
-# import matplotlib.pyplot as plt
-# import pingouin as pg
-# import random as rd
-# from scipy import stats as st
-# from sklearn.model_selection import train_test_split
-
-# from utils.clean_key import clean_key
-# from utils.clean_value import clean_value
-
-# df_filtrado.shape
-
-# df_filtrado.describe()
-
-# df_filtrado.head(3)
-
-# df_filtrado['Linha/Programa'].value_counts().to_frame()
-
-
-
-# df_filtrado['Agente Financeiro'].value_counts().to_frame()
-
-# df_filtrado['Tipo de Agricultura'].value_counts().to_frame()
-
-# df_filtrado['Beneficiários'].value_counts().to_frame()
-
-# df_filtrado['Estado'].value_counts().to_frame()
-
-# df_filtrado['Região'].value_counts().to_frame()
-
-# df_filtrado['Nº de Operações'].value_counts().to_frame()
-
-# """## ESTATISTICAS EM RELAÇÃO À REGIÃO DO PAÍS:"""
-
-# #calculo de moda dos valores aprovados por região:
-# df_filtrado.groupby('Região')['Valor Aprovado R$'].apply(lambda x: x.mode().iloc[0]).to_frame().reset_index()
-
-# #calculo de maximo, minimo e media dos valores aprovados por região:
-# df_filtrado.groupby('Região').agg(min_idh = pd.NamedAgg('Valor Aprovado R$', 'min'),max_idh = pd.NamedAgg('Valor Aprovado R$', 'max'),media_idh = pd.NamedAgg('Valor Aprovado R$', 'mean')).reset_index()
-
-# #calculo das medianas dos valores aprovados por região:
-# df_filtrado.groupby('Região').agg(median_idh = pd.NamedAgg('Valor Aprovado R$', 'median')).reset_index()
-
-# #calculo dos quartis dos valores aprovados por região:
-# df_filtrado.groupby('Região')['Valor Aprovado R$'].apply(lambda x: x.quantile([0.25, 0.5, 0.75])).to_frame().reset_index().rename(columns={'level_1': 'quartil'})
-
-# #calculo de variacia e desvio padrão dos valores aprovados por região:
-# df_filtrado.groupby('Região').agg(variancia_idh = pd.NamedAgg('Valor Aprovado R$', 'var'),dp_idh = pd.NamedAgg('Valor Aprovado R$', 'std')).reset_index()
-
-# """## ESTATISTICAS EM RELAÇÃO AO TIPO DE AGRICULTURA:"""
-
-# #calculo de moda dos valores aprovados por tipo de agricultura:
-# df_filtrado.groupby('Tipo de Agricultura')['Valor Aprovado R$'].apply(lambda x: x.mode().iloc[0]).to_frame().reset_index()
-
-# #calculo de maximo, minimo e media dos valores aprovados por tipo de agricultura:
-# df_filtrado.groupby('Tipo de Agricultura').agg(min_idh = pd.NamedAgg('Valor Aprovado R$', 'min'),max_idh = pd.NamedAgg('Valor Aprovado R$', 'max'),media_idh = pd.NamedAgg('Valor Aprovado R$', 'mean')).reset_index()
-
-# #calculo das medianas dos valores aprovados por tipo de agricultura:
-# df_filtrado.groupby('Tipo de Agricultura').agg(median_idh = pd.NamedAgg('Valor Aprovado R$', 'median')).reset_index()
-
-# #calculo dos quartis dos valores aprovados por tipo de agricultura:
-# df_filtrado.groupby('Tipo de Agricultura')['Valor Aprovado R$'].apply(lambda x: x.quantile([0.25, 0.5, 0.75])).to_frame().reset_index().rename(columns={'level_1': 'quartil'})
-
-# #calculo de variacia e desvio padrão dos valores aprovados por tipo de agricultura:
-# df_filtrado.groupby('Tipo de Agricultura').agg(variancia_idh = pd.NamedAgg('Valor Aprovado R$', 'var'),dp_idh = pd.NamedAgg('Valor Aprovado R$', 'std')).reset_index()
-
-# """## ESTATISTICAS EM RELAÇÃO AO TIPO DE LINHA/PROGRAMA:"""
-
-# #calculo de moda dos valores aprovados por tipo linha/programa:
-# df_filtrado.groupby('Linha/Programa')['Valor Aprovado R$'].apply(lambda x: x.mode().iloc[0]).to_frame().reset_index()
-
-# #calculo de maximo, minimo e media dos valores aprovados por tipo linha/programa:
-# df_filtrado.groupby('Linha/Programa').agg(min_idh = pd.NamedAgg('Valor Aprovado R$', 'min'),max_idh = pd.NamedAgg('Valor Aprovado R$', 'max'),media_idh = pd.NamedAgg('Valor Aprovado R$', 'mean')).reset_index()
-
-# #calculo das medianas dos valores aprovados por tipo linha/programa:
-# df_filtrado.groupby('Linha/Programa').agg(median_idh = pd.NamedAgg('Valor Aprovado R$', 'median')).reset_index()
-
-# #calculo de variacia e desvio padrão dos valores aprovados por tipo linha/programa:
-# df_filtrado.groupby('Linha/Programa').agg(variancia_idh = pd.NamedAgg('Valor Aprovado R$', 'var'),dp_idh = pd.NamedAgg('Valor Aprovado R$', 'std')).reset_index()
+    # analisar_safra_por_estado()
+    pass

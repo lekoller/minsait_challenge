@@ -22,5 +22,8 @@ class GenericRepository:
     def insert_many_documents(self, documents):
         self.collection.insert_many(documents)
 
+    def update_many(self, filter: dict, update_operation: dict):
+        self.collection.update_many(filter, update_operation)
+
     def remove_document(self, id):
         self.collection.delete_one({'_id': id})
