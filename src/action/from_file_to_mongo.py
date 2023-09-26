@@ -27,9 +27,6 @@ def from_xlsx_to_mongo(
     if 'Unnamed: 8' in df.columns:
         df = df.drop(columns=['Unnamed: 8'])
 
-
-        
-
     list_of_dicts = df.to_dict(orient='records')
 
     new_list_of_dicts = [{clean_key(key): clean_value(value) for key, value in item.items()} for item in list_of_dicts]
@@ -65,11 +62,11 @@ def from_csv_to_mongo(
         if no_missings:
             df = get_rid_of_missings(df)
 
-        print("after reading csv, df.shape is", df.shape)
+        # print("after reading csv, df.shape is", df.shape)
 
         list_of_dicts = df.to_dict(orient='records')
 
-        print("after converting to dict, len(list_of_dicts) is", len(list_of_dicts))
+        # print("after converting to dict, len(list_of_dicts) is", len(list_of_dicts))
 
         new_list_of_dicts = [{clean_key(key): clean_value(value) for key, value in item.items()} for item in list_of_dicts]
 

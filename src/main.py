@@ -163,13 +163,13 @@ def analisar_safra_por_estado():
 
 
 if args.save:
-    # popula_credito_rural()
+    popula_credito_rural()
     # popula_nova_collection()
     # popula_sicor_operacao_basica_estado()
-    # popula_conab()
+    popula_conab()
     pass
 
 if args.load:
     analisar_credito_por_estado()
-    # analisar_safra_por_estado()
+    analisar_safra_por_estado()
     pass
