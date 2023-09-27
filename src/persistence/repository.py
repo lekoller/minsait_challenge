@@ -10,6 +10,17 @@ class GenericRepository:
     def get_last_document(self):
         return self.collection.find_one(sort=[('_id', DESCENDING)])
     
+    def get_by_values(self, values: dict):
+
+        results = []
+        key = values['key']
+        values_list = values['values']
+
+        for value in values_list:
+            results.append(self.collection.find_one({key: value}))
+
+        return results
+    
     def list_all_documents(self, filter: dict = {}):
         return list(self.collection.find(filter))
     

@@ -9,6 +9,10 @@ Original file is located at
 import os
 import argparse
 import pandas as pd
+import pingouin as pg
+from scipy import stats as st
+import matplotlib.pyplot as plt
+import seaborn as sns
 
 from persistence.repository import GenericRepository
 from action.from_file_to_mongo import from_xlsx_to_mongo, from_csv_to_mongo
@@ -162,6 +166,79 @@ def analisar_safra_por_estado():
         repository.insert_many_documents(final_list)
 
 
+def analisar_correlacao():
+    estados = [
+        'maranhao',
+        'tocantins',
+        'piaui',
+        'mato_grosso_do_sul',
+        'goias',
+        'roraima',
+        'bahia',
+        'paraiba',
+        'sao_paulo',
+        'para',
+        'mato_grosso',
+        'minas_gerais',
+        'amazonas',
+        'sergipe',
+        'acre',
+        'rio_grande_do_norte',
+        'pernambuco',
+        'rondonia',
+        'parana',
+        'rio_de_janeiro',
+        'rio_grande_do_sul',
+        'santa_catarina',
+        'espirito_santo',
+    ]
+
+    credito = GenericRepository(db_name, 'credito_por_estado').get_by_values({
+        'key': 'estado',
+        'values': estados
+    })
+
+    produtividade = GenericRepository(db_name, 'variacao_da_produtividade_por_estado').get_by_values({
+        'key': 'estado',
+        'values': estados
+    })
+
+    print("credito", len(credito))
+    print("produtividade", len(produtividade))
+
+    cred_df = pd.DataFrame(credito)
+    prod_df = pd.DataFrame(produtividade)
+
+    cred_df = cred_df.groupby('estado').agg({'porcentagem_agricultura_familiar': 'sum'}).reset_index()
+    prod_df = prod_df.groupby('estado').agg({'variacao_produtividade': 'sum'}).reset_index()
+
+    # print(cred_df.head())
+    # print(prod_df.head())
+
+    df = pd.merge(cred_df, prod_df, on='estado')
+
+    print(df)
+
+    # # Create a scatter plot
+    # plt.figure(figsize=(10, 6))
+    # sns.scatterplot(data=df, x='porcentagem_agricultura_familiar', y='variacao_produtividade')
+    # plt.title('Scatter Plot of Agriculture Familiar Percentage vs. Productivity Variation')
+    # plt.xlabel('Porcentagem Agricultura Familiar')
+    # plt.ylabel('Variacao da Produtividade')
+    # plt.show()
+
+    correlation_coefficient, p_value = st.pearsonr(df['porcentagem_agricultura_familiar'], df['variacao_produtividade'])
+    print(f"Pearson Correlation Coefficient: {correlation_coefficient:.2f}")
+
+    # Check if the correlation is significant
+    alpha = 0.05  # Set your significance level
+    if p_value < alpha:
+        print("Reject the null hypothesis: There is a significant correlation.")
+    else:
+        print("Fail to reject the null hypothesis: There is no significant correlation.")
+
+
+
 if args.save:
     popula_credito_rural()
     # popula_nova_collection()
@@ -170,6 +247,7 @@ if args.save:
     pass
 
 if args.load:
-    analisar_credito_por_estado()
-    analisar_safra_por_estado()
+    # analisar_credito_por_estado()
+    # analisar_safra_por_estado()
+    analisar_correlacao()
     pass
